@@ -1,42 +1,17 @@
 import static Aoc.*
 
-def levels = new File('data/02').readLines().collect { line -> line.split(' ').collect { it.toInteger() } }
-
 def safe = { level ->
-    def sorted = level.toSorted()
-    def reversed = sorted.reverse()
-    if(sorted != level && reversed != level) {
-	return false
-    }
-    
-    for(int i = 0; i < sorted.size() - 1; ++i) {
-	int diff = sorted[i+1] - sorted[i]
-	if(diff < 1 || diff > 3) {
-	    return false
-	}
-    }
-    
-    return true
-}
-
-def part1 = { all -> 
-    all.count(safe)
+    def s = level.toSorted()
+    if(s != level && s.reverse() != level) return false
+    (0..<s.size()-1).collect { idx -> s[idx+1] - s[idx] }.every { n -> n >=1 && n <= 3 }
 }
 
 def withRemoval = { level ->
     if(safe(level)) return true
-    for(int i = 0; i < level.size(); ++i) {
-	def copy = new ArrayList(level)
-	copy.remove(i)
-	if(safe(copy))
-	    return true
-    }
-
-    return false
+    (0..<level.size()).any { i -> safe(level[(0..<i)] + level[i+1..<level.size()]) }
 }
-    
 
-def part2 = { all -> all.count(withRemoval) }
-    
+def levels = new File('data/02').readLines().collect { line -> line.split(' ').collect { it.toInteger() } }
 
-println part2(levels)
+printAssert("Part 1:", levels.count(safe), 483,
+	    "Part 2:", levels.count(withRemoval), 528)
