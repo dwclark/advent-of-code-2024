@@ -1,19 +1,10 @@
 import static Aoc.*
 
-def input = lines('data/04')
-
-def grid = [:]
-input.eachWithIndex { line, row ->
-    line.eachWithIndex { s, col ->
-	grid[new Tuple(row,col)] = s
-    }
-}
-
-def findXmas = { start ->
+def findXmas = { grid, start ->
     def toAdd = [new Tuple(-1,-1), new Tuple(-1,0), new Tuple(-1, 1),
 		 new Tuple(0,-1), new Tuple(0,1),
 		 new Tuple(1,-1), new Tuple(1,0), new Tuple(1,1)]
-
+    
     def found = 0
     toAdd.each { tup ->
 	def mult = { val -> return new Tuple(start[0] + tup[0]*val, start[1] + tup[1]*val) }
@@ -23,37 +14,31 @@ def findXmas = { start ->
     return found
 }
 
-def part1 = { ->
-    def total = 0
-    grid.each { tup, s ->
-	if(s == 'X')
-	    total += findXmas(tup)
-    }
-
-    return total
+def part1 = { grid ->
+    grid.inject(0) { total, tup, s -> total += ((s == 'X') ? findXmas(grid, tup) : 0) }
 }
 
-def findXmas2 = { start ->
+def findXmas2 = { grid, start ->
     def first = [new Tuple(-1,-1), new Tuple(1,1)]
     def second = [new Tuple(-1,1), new Tuple(1,-1)]
     def add = { tup -> new Tuple(tup[0] + start[0], tup[1] + start[1]) }
     
-    return (((grid[add(first[0])] == 'M' && grid[add(first[1])] == 'S') ||
-	     (grid[add(first[0])] == 'S' && grid[add(first[1])] == 'M')) &&
-	    ((grid[add(second[0])] == 'M' && grid[add(second[1])] == 'S') ||
-	     (grid[add(second[0])] == 'S' && grid[add(second[1])] == 'M'))) ? 1 : 0
+    (((grid[add(first[0])] == 'M' && grid[add(first[1])] == 'S') ||
+      (grid[add(first[0])] == 'S' && grid[add(first[1])] == 'M')) &&
+     ((grid[add(second[0])] == 'M' && grid[add(second[1])] == 'S') ||
+      (grid[add(second[0])] == 'S' && grid[add(second[1])] == 'M')))
 }
 
-def part2 = { ->
-    def total = 0
-    grid.each { tup, s ->
-	if(s == 'A') {
-	    total += findXmas2(tup)
-	}
+def part2 = { grid ->
+    grid.inject(0) { total, tup, s -> total += ((s == 'A' && findXmas2(grid, tup)) ? 1 : 0) }
+}
+
+def grid = [:]
+lines('data/04').eachWithIndex { line, row ->
+    line.eachWithIndex { s, col ->
+	grid[new Tuple(row,col)] = s
     }
-
-    return total
 }
-
-printAssert("Part 1:", part1(), 2644,
-	    "Part 2:", part2(), 1952)
+    
+printAssert("Part 1:", part1(grid), 2644,
+	    "Part 2:", part2(grid), 1952)
