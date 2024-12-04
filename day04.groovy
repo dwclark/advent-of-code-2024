@@ -1,32 +1,31 @@
 import static Aoc.*
+import static groovy.lang.Tuple.tuple
 
-def findXmas = { grid, start ->
-    def toAdd = [new Tuple(-1,-1), new Tuple(-1,0), new Tuple(-1, 1),
-		 new Tuple(0,-1), new Tuple(0,1),
-		 new Tuple(1,-1), new Tuple(1,0), new Tuple(1,1)]
-    
-    def found = 0
-    toAdd.each { tup ->
-	def mult = { val -> return new Tuple(start[0] + tup[0]*val, start[1] + tup[1]*val) }
-	found += ((grid[mult(1)] == 'M' && grid[mult(2)] == 'A' && grid[mult(3)] == 'S') ? 1 : 0)
-    }
-
-    return found
-}
 
 def part1 = { grid ->
-    grid.inject(0) { total, tup, s -> total += ((s == 'X') ? findXmas(grid, tup) : 0) }
+    def toAdd = [tuple(-1,-1), tuple(-1,0), tuple(-1, 1),
+		 tuple(0,-1), tuple(0,1),
+		 tuple(1,-1), tuple(1,0), tuple(1,1)]
+    
+    def findXmas = { start ->
+	toAdd.sum { tup ->
+	    def letter = { val -> grid[tuple(start[0] + tup[0]*val, start[1] + tup[1]*val)] }
+	    (letter(1) == 'M' && letter(2) == 'A' && letter(3) == 'S') ? 1 : 0
+	}
+    }
+
+    grid.inject(0) { total, tup, s -> total += ((s == 'X') ? findXmas(tup) : 0) }
 }
 
 def findXmas2 = { grid, start ->
-    def first = [new Tuple(-1,-1), new Tuple(1,1)]
-    def second = [new Tuple(-1,1), new Tuple(1,-1)]
-    def add = { tup -> new Tuple(tup[0] + start[0], tup[1] + start[1]) }
+    def first = [tuple(-1,-1), tuple(1,1)]
+    def second = [tuple(-1,1), tuple(1,-1)]
+    def letter = { tup -> grid[tuple(tup[0] + start[0], tup[1] + start[1])] }
     
-    (((grid[add(first[0])] == 'M' && grid[add(first[1])] == 'S') ||
-      (grid[add(first[0])] == 'S' && grid[add(first[1])] == 'M')) &&
-     ((grid[add(second[0])] == 'M' && grid[add(second[1])] == 'S') ||
-      (grid[add(second[0])] == 'S' && grid[add(second[1])] == 'M')))
+    (((letter(first[0]) == 'M' && letter(first[1]) == 'S') ||
+      (letter(first[0]) == 'S' && letter(first[1]) == 'M')) &&
+     ((letter(second[0]) == 'M' && letter(second[1]) == 'S') ||
+      (letter(second[0]) == 'S' && letter(second[1]) == 'M')))
 }
 
 def part2 = { grid ->
@@ -36,7 +35,7 @@ def part2 = { grid ->
 def grid = [:]
 lines('data/04').eachWithIndex { line, row ->
     line.eachWithIndex { s, col ->
-	grid[new Tuple(row,col)] = s
+	grid[tuple(row,col)] = s
     }
 }
     
