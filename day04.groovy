@@ -17,19 +17,19 @@ def part1 = { grid ->
     grid.inject(0) { total, tup, s -> total += ((s == 'X') ? findXmas(tup) : 0) }
 }
 
-def findXmas2 = { grid, start ->
-    def first = [tuple(-1,-1), tuple(1,1)]
-    def second = [tuple(-1,1), tuple(1,-1)]
-    def letter = { tup -> grid[tuple(tup[0] + start[0], tup[1] + start[1])] }
-    
-    (((letter(first[0]) == 'M' && letter(first[1]) == 'S') ||
-      (letter(first[0]) == 'S' && letter(first[1]) == 'M')) &&
-     ((letter(second[0]) == 'M' && letter(second[1]) == 'S') ||
-      (letter(second[0]) == 'S' && letter(second[1]) == 'M')))
-}
-
 def part2 = { grid ->
-    grid.inject(0) { total, tup, s -> total += ((s == 'A' && findXmas2(grid, tup)) ? 1 : 0) }
+    def findXmas = { start ->
+	def first = [tuple(-1,-1), tuple(1,1)]
+	def second = [tuple(-1,1), tuple(1,-1)]
+	def letter = { tup -> grid[tuple(tup[0] + start[0], tup[1] + start[1])] }
+	
+	(((letter(first[0]) == 'M' && letter(first[1]) == 'S') ||
+	  (letter(first[0]) == 'S' && letter(first[1]) == 'M')) &&
+	 ((letter(second[0]) == 'M' && letter(second[1]) == 'S') ||
+	  (letter(second[0]) == 'S' && letter(second[1]) == 'M')))
+    }
+
+    grid.inject(0) { total, tup, s -> total += ((s == 'A' && findXmas(tup)) ? 1 : 0) }
 }
 
 def grid = [:]
