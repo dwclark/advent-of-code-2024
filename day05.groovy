@@ -16,8 +16,6 @@ def parse(def loc) {
 }
 
 def (orderings, updates) = parse('data/05')
-//println orderings
-//println updates
 
 def isGood(def orderings, def update) {
     orderings.every { list ->
@@ -53,11 +51,8 @@ def reorder(def orderings, def update) {
 
 def good = updates.findAll { update -> isGood(orderings, update) }
 def bad = updates.findAll { update -> !isGood(orderings, update) }
-
-println good.sum { list -> return list[list.size().intdiv(2)] }
-
 def reordered = bad.collect { update -> reorder(orderings, update) }
-//println bad
-//println reordered
-println reordered.sum { list -> return list[list.size().intdiv(2)] }
+
+printAssert("Part 1:", good.sum { list -> return list[list.size().intdiv(2)] }, 3608,
+	    "Part 2:", reordered.sum { list -> return list[list.size().intdiv(2)] }, 4922)
 
