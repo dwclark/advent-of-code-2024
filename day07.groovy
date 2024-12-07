@@ -1,59 +1,36 @@
 import static Aoc.*
+import static java.util.concurrent.CompletableFuture.supplyAsync
 
 def lines = new File('data/07').readLines().collect { it.replace(':', '') }
-def equations = lines.collect { it.split(/\s+/).collect { new BigInteger(it) } }
-def possible1, possible2
+def eqs = lines.collect { it.split(/\s+/).collect { new BigInteger(it) } }
+final p1Ops = [ { one, two -> one * two }, { one, two -> one + two } ]
+final p2Ops = p1Ops + [ { one, two -> new BigInteger("${one}${two}") } ]
 
-possible1 = { List accum, List vals ->
-    def added = vals[0] + vals[1]
-    def multiplied = vals[0] * vals[1]
+def possible(List accum, List ops, List vals) {
+    def results = ops.collect { op -> op.call(vals[0], vals[1]) }
     
     if(vals.size() == 2) {
-	accum.add(added)
-	accum.add(multiplied)
+	accum.addAll(results)
     }
     else {
 	List rest = vals[(2..<vals.size())]
-	possible1(accum, [added] + rest)
-	possible1(accum, [multiplied] + rest)
+	for(result in results)
+	    possible(accum, ops, [result] + rest)
     }
 }
 
-possible2 = { List accum, List vals ->
-    def added = vals[0] + vals[1]
-    def multiplied = vals[0] * vals[1]
-    def concat = new BigInteger("${vals[0]}${vals[1]}")
-    
-    if(vals.size() == 2) {
-	accum.add(added)
-	accum.add(multiplied)
-	accum.add(concat)
-    }
-    else {
-	List rest = vals[(2..<vals.size())]
-	possible2(accum, [added] + rest)
-	possible2(accum, [multiplied] + rest)
-	possible2(accum, [concat] + rest)
-    }
-}
-
-def canWork = { List vals, Closure closure ->
+def canWork(List vals, List ops) {
     def need = vals[0]
     def accum = []
-    closure.call(accum, vals[(1..<vals.size())])
-    if(accum.any { it == need })
-	return need
-    else
-	return 0
+    possible(accum, ops, vals[(1..<vals.size())])
+    return (accum.any { it == need }) ? need : 0
 }
 
-def part1 = {
-    equations.inject(0G) { total, equation -> total += canWork(equation, possible1) }
+def schedule = { List ops ->
+    def futures = eqs.collect { eq -> supplyAsync({ -> canWork(eq, ops) }) }
+    futures.inject(0G) { tot, fut -> tot += fut.get() }
 }
 
-def part2 = {
-    equations.inject(0G) { total, equation -> total += canWork(equation, possible2) }
-}
+printAssert("Part 1:", schedule(p1Ops), 8401132154762G,
+	    "Part 2:", schedule(p2Ops), 95297119227552G)
 
-//println part1()
-println part2()
