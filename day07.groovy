@@ -1,29 +1,29 @@
 import static Aoc.*
 import static java.util.concurrent.CompletableFuture.supplyAsync
 
-def lines = new File('data/07').readLines().collect { it.replace(':', '') }
-def eqs = lines.collect { it.split(/\s+/).collect { new BigInteger(it) } }
+final lines = new File('data/07').readLines().collect { it.replace(':', '') }
+final eqs = lines.collect { it.split(/\s+/).collect { it.toBigInteger() } }
 final p1Ops = [ { one, two -> one * two }, { one, two -> one + two } ]
-final p2Ops = p1Ops + [ { one, two -> new BigInteger("${one}${two}") } ]
+final p2Ops = p1Ops + [ { one, two -> "${one}${two}".toBigInteger() } ]
 
 def possible(List accum, List ops, List vals) {
-    def results = ops.collect { op -> op.call(vals[0], vals[1]) }
+    List results = ops.collect { op -> op.call(vals[0], vals[1]) }
+    List rest = vals[(2..<vals.size())]
     
-    if(vals.size() == 2) {
+    if(!rest) {
 	accum.addAll(results)
     }
     else {
-	List rest = vals[(2..<vals.size())]
 	for(result in results)
 	    possible(accum, ops, [result] + rest)
     }
+
+    return accum
 }
 
 def canWork(List vals, List ops) {
-    def need = vals[0]
-    def accum = []
-    possible(accum, ops, vals[(1..<vals.size())])
-    return (accum.any { it == need }) ? need : 0
+    def accum = possible([], ops, vals[(1..<vals.size())])
+    return (accum.any { it == vals[0] }) ? vals[0] : 0
 }
 
 def schedule = { List ops ->
