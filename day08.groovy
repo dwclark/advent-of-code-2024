@@ -48,5 +48,5 @@ def antiNodes = { def closure ->
     return all.size()
 }
 
-println antiNodes(p1)
-println antiNodes(p2)
+printAssert("Part 1:", antiNodes(p1), 244,
+	    "Part 2:", antiNodes(p2), 912)
