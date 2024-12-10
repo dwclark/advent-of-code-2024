@@ -1,22 +1,17 @@
 import static Aoc.*
 
 class Block {
-    int id, length, free
-    int movedIn = 0, movedOut = 0
-
-    int getRemaining() { length - movedOut }
-    int getSpace() { free - movedIn }
-
-    @Override
-    boolean equals(Object rhs) {
-	return id == ((Block) rhs).id
-    }
+    int id, length, free, copied
+    List<Integer> addedIds = []
+    
+    int getRemaining() { length - copied }
+    int getSpace() { free - addedIds.size() }
 
     @Override
     String toString() { "(${id},${length},${free})" }
 }
 
-def readBlocks(def line) {
+List<Block> readBlocks(String line) {
     def ret = []
     int id = 0, index = 0
     for(; index < line.length() - 1; ++id, index += 2) {
@@ -26,44 +21,62 @@ def readBlocks(def line) {
     ret += new Block(id: id, length: line[index].toInteger(), free: 0)
 }
 
-def calculateIds(List<Block> blocks) {
-    def total = 0G
+long checkSum(List<Block> blocks) {
+    long total = 0L
     int index = 0
-    int reverseIndex = -1
-    
-    def nextCopy = { Block current ->
-	while(current != blocks[reverseIndex] && blocks[reverseIndex].remaining == 0)
-	    --reverseIndex
-
-	return (current == blocks[reverseIndex]) ? null : blocks[reverseIndex]
-    }
-
-    def copied = false
-    
     for(Block block in blocks) {
-	for(int i = 0; i < block.remaining; ++i) {
-	    total += (block.id * index)
-	    ++index
+	block.length.times { idx ->
+	    total += (index++) * (idx < block.remaining ? block.id : 0)
 	}
-
-	while(block.space) {
-	    Block copyBlock = blocks[reverseIndex]
-	    if(copyBlock == block)
-		return total
-
-	    if(copyBlock.remaining) {
-		total += (copyBlock.id * index)
-		++block.movedIn
-		++copyBlock.movedOut
-		++index
-	    }
-	    else {
-		--reverseIndex
-	    }
+	
+	block.free.times { idx ->
+	    total += (index++) * (idx < block.addedIds.size() ? block.addedIds[idx] : 0)
 	}
     }
 
     return total
 }
 
-println calculateIds(readBlocks(new File('data/09').text))
+List<Block> copy1(List<Block> blocks) {
+    int forward = 0
+    int reverse = blocks.size() - 1
+    
+    while(forward < reverse) {
+	Block block = blocks[forward]
+
+	while(block.space && forward < reverse) {
+	    Block copyBlock = blocks[reverse]
+	    if(copyBlock.remaining) {
+		block.addedIds.add(copyBlock.id)
+		++copyBlock.copied
+	    }
+	    else {
+		--reverse
+	    }
+	}
+
+	++forward
+    }
+
+    return blocks
+}
+
+List<Block> copy2(List<Block> blocks) {
+    for(int reverse = blocks.size() - 1; reverse > 0; --reverse) {
+	Block current = blocks[reverse]
+	for(int forward = 0; forward < reverse; ++forward) {
+	    Block target = blocks[forward]
+	    if(current.length <= target.space) {
+		current.copied += current.length
+		current.length.times { target.addedIds.add(current.id) }
+		break
+	    }
+	}
+    }
+
+    return blocks
+}
+
+final String line = new File('data/09').text
+printAssert("Part 1:", checkSum(copy1(readBlocks(line))), 6607511583593L,
+	    "Part 2:", checkSum(copy2(readBlocks(line))), 6636608781232L)
