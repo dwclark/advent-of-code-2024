@@ -83,4 +83,8 @@ class IntVec {
 	assert ary.length == 2
 	return N_TO_ADD.collect { toAdd -> toAdd + this }
     }
+
+    List<IntVec> getCrossNeighbors() {
+	[vec(0,1), vec(0,-1), vec(-1,0), vec(1,0)].collect { toAdd -> toAdd + this }
+    }
 }
