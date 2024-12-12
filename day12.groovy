@@ -41,7 +41,7 @@ def findRegions() {
 	if(!visited.contains(vec)) {
 	    def region = bfsRegion(vec)
 	    visited.addAll(region)
-	    regions.add(region)
+	    regions.add(Set.copyOf(region))
 	}
     }
     
@@ -85,22 +85,18 @@ def cornersAt(def counts, def region, def v) {
     
     def corners
     if((corners = compute(v.west, v.north, v.northWest))) {
-	//println "for ${v} north west is corner, adding ${corners} corners at ${v}"
 	counts[v] = corners
     }
     
     if((corners = compute(v.north, v.east, v.northEast))) {
-	//println "for ${v} north east is corner, adding ${corners} corners at ${v + vec(0,1)}"
 	counts[v + vec(0,1)] = corners
     }
     
     if((corners = compute(v.west, v.south, v.southWest))) {
-	//println "for ${v} south west is corner, adding ${corners} corners at ${v + vec(1,0)}"
 	counts[v + vec(1,0)] = corners
     }
     
     if((corners = compute(v.south, v.east, v.southEast))) {
-	//println "for ${v} south east is corner, adding ${corners} corners at ${v + vec(1,1)}"
 	counts[v + vec(1,1)] = corners
     }
     
@@ -117,13 +113,5 @@ def fenceCosts2() {
     regions.sum {region -> (region.size() * corners(region).values().sum()) }
 }
 
-// regions.each { region ->
-//     println "${grid[region.first()]} corners: ${corners(region)}"
-// }
-
-//println fenceCosts1()
-/*regions.each { region ->
-    println "${grid[region.first()]}: ${corners(region).values().sum()} ${corners(region)}"
- }*/
-
-println fenceCosts2()
+printAssert("Part 1:", fenceCosts1(), 1473408,
+	    "Part 2:", fenceCosts2(), 886364)
