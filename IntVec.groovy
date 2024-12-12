@@ -84,7 +84,14 @@ class IntVec {
 	return N_TO_ADD.collect { toAdd -> toAdd + this }
     }
 
-    List<IntVec> getCrossNeighbors() {
-	[vec(0,1), vec(0,-1), vec(-1,0), vec(1,0)].collect { toAdd -> toAdd + this }
-    }
+    IntVec getNorth() { this + vec(-1,0) }
+    IntVec getNorthWest() { this + vec(-1,-1) }
+    IntVec getWest() { this + vec(0,-1) }
+    IntVec getSouthWest() { this + vec(1,-1) }
+    IntVec getSouth() { this + vec(1,0) }
+    IntVec getSouthEast() { this + vec(1,1) }
+    IntVec getEast() { this + vec(0,1) }
+    IntVec getNorthEast() { this + vec(-1,1) }
+    
+    List<IntVec> getCrossNeighbors() { [north,west,south,east] }
 }
