@@ -107,5 +107,3 @@ def part2() {
 
 printAssert("Part 1:", part1(), 219512160,
 	    "Part 2:", part2(), 6398)
-
-
