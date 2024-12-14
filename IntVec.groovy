@@ -53,7 +53,7 @@ class IntVec {
 	return new IntVec(tmp)
     }
 
-    int getAt(int idx) { return ary[i] }
+    int getAt(int idx) { return ary[idx] }
 
     int manhattan(IntVec rhs) {
 	assert ary.length == rhs.ary.length
