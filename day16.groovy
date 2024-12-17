@@ -106,4 +106,3 @@ def allNodes(List<State> endStates) {
 def (cost, endStates) = solve(*parse('data/16'))
 printAssert("Part 1:", cost, 98520,
 	    "Part 2:", allNodes(endStates).size(), 609)
-
