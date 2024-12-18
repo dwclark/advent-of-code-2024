@@ -23,6 +23,12 @@ Set populateGrid() {
     return grid
 }
 
+/*
+ I finally took the time to understand an implement the A* algorithm.
+ Mostly I just read this page and ported the python to groovy.
+
+ https://www.redblobgames.com/pathfinding/a-star/introduction.html
+ */
 int solve() {
     def frontier = new PriorityQueue({ one, two -> one[1] <=> two[1]})
     def costs = grid.collectEntries { vec -> new MapEntry(vec, Integer.MAX_VALUE) }
