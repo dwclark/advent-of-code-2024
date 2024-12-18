@@ -2,8 +2,21 @@ import static Aoc.*
 import groovy.transform.InheritConstructors
 import groovy.transform.CompileStatic
 import groovy.transform.Field
-import static Long.toHexString
 
+/*
+ The computer class was straightforward enough, at least initially. I was able to
+ get the right answer without any issues. However, I had no idea how to do part 2. I
+ explored a couple of ideas. I tried to think of a way to run the computer in
+ reverse. However, integer division operations made this impossible, information was
+ lost between steps. This also doomed my second idea, making an inverse function
+ of what the machine was doing. I also explored simpler ideas like looking for a
+ pattern in inputs and outputs.
+
+ I did make the Computer class more object-oriented so it was easier to print
+ the state of what the computer was doing as it ran. While I did that to explore
+ the above ideas, it wasn't a waste of time in the end as it was step 1 of a
+ series of ideas I ended up doing.
+ */
 @CompileStatic
 class Computer {
 
@@ -123,12 +136,38 @@ def parse(def path) {
     return new Computer(A, B, C, instructions)
 }
 
+/*
+ I used the following code to print out the complete state of the
+ computer as it was doing a run. It shows all the registers, plus
+ a human readable format of what was the next instruction to execute.
+
+ This at least made clear a few insights. 1. The instructions always
+ were executing a loop. 2. The jump instruction was always the last in
+ the loop and jumped to the top of the loop as long as A wasn't zero
+ 3. The final instruction before the jump reduced the value in A by
+ doing an integer division by 8 and then assigning it back to A, so
+ the width of A was correlated with the number of iterations. 4. The
+ final value was always an number that would be less than 8 since
+ the output was B % 8, which is just the last 3 bits of B
+ */
+
 //def cont
 //println computer
 //while((cont = computer.step()))
 //    println computer
 //println computer.output.join(',')
 
+/*
+ I did look at reddit for clues, but not at any solutions. One clue was
+ that someone simplified the loop the computer did to be simple operations
+ on variables represented as simpler operations. They did this to feed the
+ program into a SAT solver or constraint satisfaction program, I don't remember
+ which. Most of those operations were bitwise, but a couple were not.
+
+ I have no idea how to use those solvers, but it seemed like simplifying might
+ give more clues. Being the completist I am, I reduced all operations to
+ bitwise operations. The result was myProgram.
+ */
 def myProgram(long val) {
     long A = val, B = 0, C = 0
     List output = [];
@@ -146,6 +185,24 @@ def myProgram(long val) {
     return output
 }
 
+/*
+ Once I got myProgram, I remembered the substituion method of
+ analyzing code in SICP. It seemed easy enough to do, so I
+ went ahead at did that.
+
+ At that point things started coming together. I remember on
+ reddit people were claiming that the results were only ever
+ based on a limited number of bits. Different numbers were
+ given (obviously different inputs). However, from the reduced
+ function, it's obvious that only 14 bits can ever be involved
+ in computing the next result.
+
+ I didn't know how to use a SAT solver, but I was pretty sure
+ at that point I could write my own constraint satisfaction function.
+ It took a lot of thinking to try and get all of the pieces correct.
+ This function, satisfy, is shown below.
+ */
+
 def reduced(long val) {
     long A = val; B = 0; C = 0;
     List output = [];
@@ -158,6 +215,10 @@ def reduced(long val) {
     return output
 }
 
+/*
+ Since the output is 16 digits of 3 bits each, and since
+ A is reduced by 3 bits each iteration, we need 48 bits to solve this
+ */
 @Field final int bitsNeeded = 48
 @Field final List<Integer> toMatch  = [2,4,1,2,7,5,1,3,4,3,5,5,0,3,3,0]
 
@@ -180,7 +241,29 @@ def nextStep(final long soFar, final int width) {
     return 0L
 }
 
-def firstStep() {
+/*
+ satisfy() tries all of the first 2**15 numbers to generate
+ the last 5 numbers. There are many ways to do this, but at least
+ one of them has to be involved in satisfying the constraint
+ of matching all of the numbers. We need the first step to be 15 bits
+ wide because a max of 14 bits will be involved in computing results.
+ By doing this we can always be sure that we are constraining
+ the last numbers to be correct.
+
+ Once we have a match for the last five digits, we call into nextStep.
+ nextStep() shifts the already satisfied 15 bits/last five numbers by
+ 3 bits left, then attempts to add one more 8 bit digit, making sure it can
+ satisfy 18 bits/last six numbers. If it can satify, it recurses, increasing
+ the width. Once the bit width in nextStep() == bitsNeeded, we have
+ satisfied all of the constraints and we can return the number.
+
+ Each phase will continue looping where it left off if it detects
+ that downstream calls can't satisfy the remaining constraints.
+ In that case, they return 0L and we keep looping. If the final
+ call to nextStep() returns something other than 0L, we found the
+ solution, return it (eventually) to satisfy() which returns it to the script
+ */
+def satisfy() {
     final int width = 5
     final long myMax = 2 ** (width * 3)
 
@@ -197,7 +280,5 @@ def firstStep() {
 
 def computer = parse('data/17').exec()
 printAssert("Part 1:", computer.output.join(','), "3,7,1,7,2,1,0,6,3",
-	    "Part 2:", reduced(37221334433268L).join(','), "2,4,1,2,7,5,1,3,4,3,5,5,0,3,3,0")
-
-//need this: 2_412_751_343_550_330
-//in octal: 0104_44611_62606_77572
+	    "Matched Answer:", satisfy(), 37221334433268L,
+	    "Part 2:", reduced(satisfy()).join(','), "2,4,1,2,7,5,1,3,4,3,5,5,0,3,3,0")
