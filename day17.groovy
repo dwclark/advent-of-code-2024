@@ -1,5 +1,6 @@
 import groovy.transform.InheritConstructors
 import groovy.transform.CompileStatic
+import groovy.transform.Field
 import static Long.toHexString
 
 @CompileStatic
@@ -120,25 +121,86 @@ def parse(def path) {
     return new Computer(A, B, C, instructions)
 }
 
-int A, B, C
+/*long A, B, C
 List output
 
-def myProgram = { int val ->
+def myProgram = { long val ->
     A = val; B = 0; C = 0; output = [];
     return { ->
-	B = A & 7
-	B = B ^ 2
-	C = A >>> B
-	B = B ^ 3
-	B = B ^ C
-	output.add(B & 7)
-	A = (A >>> 3)
+	while(A) {
+	    B = (A & 7)
+	    B = (B ^ 2)
+	    C = (A >>> B)
+	    B = (B ^ 3)
+	    B = (B ^ C)
+	    A = (A >>> 3)
+	    output.add(B & 7)
+	}
     }
+}*/
+
+def reduced(long val) {
+    long A = val; B = 0; C = 0;
+    List output = [];
+    while(A) {
+	B = ((((A & 7) ^ 2) ^ 3) ^ (A >>> ((A & 7) ^ 2)))
+	A = (A >>> 3)
+	output.add(B & 7)
+    }
+
+    return output
 }
 
-def toExec = myProgram(64_584_136)
-9.times { toExec() }
-println output.join(',')
+@Field final int bitsNeeded = 48
+@Field final List<Integer> toMatch  = [2,4,1,2,7,5,1,3,4,3,5,5,0,3,3,0]
+
+def nextStep(final long soFar, final int width) {
+    long shifted = (soFar << 3L)
+    for(long i = 0L; i < 8L; ++i) {
+	long toTest = shifted | i
+	List<Integer> output = reduced(toTest)
+	if(output == toMatch[(toMatch.size() - width)..<toMatch.size()]) {
+	    if((width * 3) == bitsNeeded) {
+		return toTest
+	    }
+	    else {
+		toTest = nextStep(toTest, width + 1)
+		if(toTest) return toTest
+	    }
+	}
+    }
+
+    return 0L
+}
+
+def step1() {
+    final int width = 5
+    final long myMax = 2 ** (width * 3)
+
+    for(long i = 0; i <= myMax; ++i) {
+	List<Integer> output = reduced(i)
+	if(output == toMatch[(toMatch.size() - width)..<toMatch.size()]) {
+	    println "matched ${i}"
+	    long result = nextStep(i, width + 1)
+	    if(result) return result
+	}
+    }
+
+    return 0L
+}
+
+println step1()
+
+println reduced(37221334433268L).join(',')
+
+//need this: 2_412_751_343_550_330
+//in octal: 0104_44611_62606_77572
+//println reduced(64_584_136L).join(',')
+//println reduced(64_584_136L >>> 6L).join(',')
+//println toExec().join(',')
+//println output.join(',')
+
+//now, how to reverse it??
 
 /*def computer = parse('data/17')
 (0..07777).each {
