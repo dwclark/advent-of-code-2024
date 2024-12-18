@@ -1,3 +1,4 @@
+import static Aoc.*
 import groovy.transform.InheritConstructors
 import groovy.transform.CompileStatic
 import groovy.transform.Field
@@ -99,8 +100,9 @@ class Computer {
     private String num(long val) { String.format("%10o", val) }
     @Override String toString() { "Computer(A: ${num(A)}, B: ${num(B)}, C: ${num(C)}, IP: ${IP}, next: ${instructions[IP]}" }
 
-    void run() {
+    Computer exec() {
 	while(step()) {}
+	return this
     }
 
     boolean step() {
@@ -121,23 +123,28 @@ def parse(def path) {
     return new Computer(A, B, C, instructions)
 }
 
-/*long A, B, C
-List output
+//def cont
+//println computer
+//while((cont = computer.step()))
+//    println computer
+//println computer.output.join(',')
 
-def myProgram = { long val ->
-    A = val; B = 0; C = 0; output = [];
-    return { ->
-	while(A) {
-	    B = (A & 7)
-	    B = (B ^ 2)
-	    C = (A >>> B)
-	    B = (B ^ 3)
-	    B = (B ^ C)
-	    A = (A >>> 3)
-	    output.add(B & 7)
-	}
+def myProgram(long val) {
+    long A = val, B = 0, C = 0
+    List output = [];
+
+    while(A) {
+	B = (A & 7)
+	B = (B ^ 2)
+	C = (A >>> B)
+	B = (B ^ 3)
+	B = (B ^ C)
+	A = (A >>> 3)
+	output.add(B & 7)
     }
-}*/
+
+    return output
+}
 
 def reduced(long val) {
     long A = val; B = 0; C = 0;
@@ -173,14 +180,13 @@ def nextStep(final long soFar, final int width) {
     return 0L
 }
 
-def step1() {
+def firstStep() {
     final int width = 5
     final long myMax = 2 ** (width * 3)
 
     for(long i = 0; i <= myMax; ++i) {
 	List<Integer> output = reduced(i)
 	if(output == toMatch[(toMatch.size() - width)..<toMatch.size()]) {
-	    println "matched ${i}"
 	    long result = nextStep(i, width + 1)
 	    if(result) return result
 	}
@@ -189,42 +195,9 @@ def step1() {
     return 0L
 }
 
-println step1()
-
-println reduced(37221334433268L).join(',')
+def computer = parse('data/17').exec()
+printAssert("Part 1:", computer.output.join(','), "3,7,1,7,2,1,0,6,3",
+	    "Part 2:", reduced(37221334433268L).join(','), "2,4,1,2,7,5,1,3,4,3,5,5,0,3,3,0")
 
 //need this: 2_412_751_343_550_330
 //in octal: 0104_44611_62606_77572
-//println reduced(64_584_136L).join(',')
-//println reduced(64_584_136L >>> 6L).join(',')
-//println toExec().join(',')
-//println output.join(',')
-
-//now, how to reverse it??
-
-/*def computer = parse('data/17')
-(0..07777).each {
-    computer.reset(it)
-    computer.run()
-    println "${it}: ${computer.output.join(',')}"
- }*/
-
-//def cont
-//println computer
-//while((cont = computer.step()))
-//    println computer
-//println computer.output.join(',')
-
-/*assert computer.output.join(',') == '3,7,1,7,2,1,0,6,3'
-
-(5555..5555).each { num ->
-    computer.reset(num)
-    println "${Integer.toOctalString(num)} ********************************"
-    println computer
-    def cont
-    while((cont = computer.step()))
-	println computer
-    println computer.output.join(',')
-    println()
-}
-*/
