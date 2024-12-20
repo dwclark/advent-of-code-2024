@@ -124,3 +124,12 @@ def groupedSavings(def solutions, int baseLine) {
 def grouped = groupedSavings(p1Solutions, baseLine)
 println grouped
 println grouped.values().sum()
+
+//Thoughts on part 2:
+/*
+ It seems like enumerating the new paths will be a pain and take forever
+ Not to mention that then trying to solve them will be even worse
+ Pre-compute all paths with something like Floyd-Warshall?
+ Terminate early?
+ Prune areas that I don't need to bother will because there's no way to save enough time to matter?
+ */
