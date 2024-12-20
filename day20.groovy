@@ -163,7 +163,7 @@ Map part2(final int atLeast, Closure function) {
 }
 
 printAssert("Part 1:", part1(100).values().sum(), 1406,
-	    "Part 2:", part2(100).values().sum(), 1006101)
+	    "Part 2:", part2(100, this.&cheats).values().sum(), 1006101)
 
 /*Instant s1 = Instant.now()
 assert part2(100, this.&cheats).values().sum() == 1006101
