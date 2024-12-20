@@ -1,4 +1,4 @@
-import Aoc.*
+import static Aoc.*
 import static IntVec.vec
 import groovy.transform.Field
 import java.util.concurrent.ConcurrentHashMap
@@ -62,11 +62,6 @@ Map part1(int atLeast) {
     return saved
 }
 
-boolean inBounds(final IntVec pos) {
-    (pos[0] >= 0 && pos[0] < rows &&
-     pos[1] >= 0 && pos[1] < columns)
-}
-
 Map cheats(final IntVec pos, final int atLeast) {
     def exits = [:]
     for(int row = -20; row <= 20; ++row) {
@@ -85,41 +80,18 @@ Map cheats(final IntVec pos, final int atLeast) {
     return exits
 }
 
-Map part2() {
+Map part2(final int atLeast) {
     Map saved = [:]
-    List tasks = costs.keySet().collect { [it, supplyAsync(this.&cheats.curry(it, 100))] }
+    List tasks = costs.keySet().collect { [it, supplyAsync(this.&cheats.curry(it, atLeast))] }
     tasks.each { list ->
 	def (pos, task) = list
 	task.get().each { exit, num ->
 	    saved[num] = saved.get(num, 0) + 1
 	}
-	
-	println "finished ${pos}"
     }
     
     return saved
 }
 
-def printCheats(Map exits) {
-    println exits
-    (0..<rows).each { row ->
-	(0..<columns).each { col ->
-	    IntVec v = vec(row, col)
-	    if(!costs.containsKey(v)) print '#'
-	    else if(exits.containsKey(v)) print 'C'
-	    else if(v == start) print 'S'
-	    else if(v == end) print 'E'
-	    else print '.'
-	}
-
-	println()
-    }
-}
-
-//println costs
-//println part1(100).values().sum()
-//printCheats(bfsCheats(vec(3,1), 50))
-println part2().values().sum()
-
-//int diff = costs[vec(3,1)] - (costs[vec(13,6)] + 19)
-//println diff
+printAssert("Part 1:", part1(100).values().sum(), 1406,
+	    "Part 2:", part2(100).values().sum(), 1006101)
