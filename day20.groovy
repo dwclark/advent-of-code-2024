@@ -3,6 +3,7 @@ import static IntVec.vec
 import groovy.transform.Field
 import java.util.concurrent.ConcurrentHashMap
 import static java.util.concurrent.CompletableFuture.supplyAsync
+import static java.util.Map.entry
 
 List parse(String path) {
     Set grid = new HashSet()
@@ -19,117 +20,106 @@ List parse(String path) {
 	}
     }
 
-    return [ lines, Set.copyOf(grid), start, end ]
+    //there is only one path, read the directions!, just label everything
+    int cost = 0
+    IntVec current = end
+    Set visited = new HashSet()
+    Map costs = [:]
+    while(current) {
+	visited.add(current)
+	costs[current] = cost++
+	current = current.crossNeighbors.find { n -> grid.contains(n) && !visited.contains(n) }
+    }
+
+    return [ lines, costs, start, end ]
 }
 
 @Field final List init = parse('data/20')
-@Field final int atLeast = 100
 @Field final List lines = init[0]
 @Field final int rows = lines.size()
 @Field final int columns = lines[0].length()
-@Field final Set grid = init[1]
+@Field final Map costs = Map.copyOf(init[1])
 @Field final IntVec start = init[2]
 @Field final IntVec end = init[3]
 
-int solve(Set grid) {
-    def frontier = new PriorityQueue({ one, two -> one[1] <=> two[1]})
-    def costs = grid.collectEntries { vec -> new MapEntry(vec, Integer.MAX_VALUE) }
-    frontier.add([start, 0])
-    costs[start] = 0
+Map part1(int atLeast) {
+    final List directions = [vec(0,1), vec(0,2), vec(0,-1), vec(0,-2),
+			     vec(1,0), vec(2,0), vec(-1,0), vec(-2,0)]
+    Map saved = [:]
+    costs.each { pos, cost ->
+	for(int i = 0; i < directions.size(); i += 2) {
+	    IntVec toTest = pos + directions[i+1]
+	    if(!costs.containsKey(pos + directions[i]) &&
+	       costs.containsKey(toTest)) {
+		int diff = (costs[pos] - costs[toTest]) - 2
+		if(diff >= atLeast) {
+		    saved[diff] = saved.get(diff, 0) + 1
+		}
+	    }
+	}
+    }
+
+    return saved
+}
+
+boolean inBounds(final IntVec pos) {
+    (pos[0] >= 0 && pos[0] < rows &&
+     pos[1] >= 0 && pos[1] < columns)
+}
+
+Map cheats(final IntVec pos, final int atLeast) {
+    def exits = [:]
+    for(int row = -20; row <= 20; ++row) {
+	for(int col = Math.abs(row) - 20; col <= 20 - Math.abs(row); ++col) {
+	    IntVec possible = vec(row, col) + pos
+	    int walked = Math.abs(row) + Math.abs(col)
+	    if(costs.containsKey(possible)) {
+		assert !exits.containsKey(possible)
+		int saved = costs[pos] - (costs[possible] + walked)
+		if(saved >= atLeast)
+		    exits[possible] = saved
+	    }
+	}
+    }
+
+    return exits
+}
+
+Map part2() {
+    Map saved = [:]
+    List tasks = costs.keySet().collect { [it, supplyAsync(this.&cheats.curry(it, 100))] }
+    tasks.each { list ->
+	def (pos, task) = list
+	task.get().each { exit, num ->
+	    saved[num] = saved.get(num, 0) + 1
+	}
+	
+	println "finished ${pos}"
+    }
     
-    while(frontier) {
-	def (current, heuristic) = frontier.poll()
-	if(current == end)
-	    return costs[current]
-
-	current.crossNeighbors.each { next ->
-	    if(grid.contains(next)) {
-		def cost = costs[current] + 1
-		if(cost < costs[next]) {
-		    costs[next] = cost
-		    frontier.add([next, cost + next.manhattan(end)])
-		}
-	    }
-	}
-    }
-
-    return -1
+    return saved
 }
 
-def canRemove(IntVec possible) {
-    (!grid.contains(possible) &&
-     ((grid.contains(possible.east) && (grid.contains(possible.west))) ||
-      (grid.contains(possible.north) && grid.contains(possible.south))))
-}
-
-def cheater() {
-    int row = 0, col = 0
-    return { ->
-	for(; row < rows; ++row) {
-	    for(; col < columns; ++col) {
-		IntVec possible = vec(row, col)
-		if(canRemove(possible)) {
-		    println "Added ${possible}"
-		    Set newGrid = new HashSet(grid)
-		    newGrid.add(possible)
-		    ++col
-		    return [possible, newGrid]
-		}
-	    }
-
-	    col = 0
+def printCheats(Map exits) {
+    println exits
+    (0..<rows).each { row ->
+	(0..<columns).each { col ->
+	    IntVec v = vec(row, col)
+	    if(!costs.containsKey(v)) print '#'
+	    else if(exits.containsKey(v)) print 'C'
+	    else if(v == start) print 'S'
+	    else if(v == end) print 'E'
+	    else print '.'
 	}
 
-	return [null, null]
+	println()
     }
 }
 
-final int baseLine = solve(grid)
-println baseLine
-def part1() {
-    def cheat = cheater()
-    def solutions = new ConcurrentHashMap()
-    def tasks = []
-    while(true) {
-	def (possible, newGrid) = cheat()
-	if(!possible)
-	    break
-	else {
-	    def task = { vec, set ->
-		solutions[vec] = solve(set)
-		return vec
-	    }
+//println costs
+//println part1(100).values().sum()
+//printCheats(bfsCheats(vec(3,1), 50))
+println part2().values().sum()
 
-	    tasks.add(task.curry(possible, newGrid))
-	}
-    }
-
-    tasks.collect { supplyAsync(it) }.each { println "finished ${it.get()}" }
-    return solutions
-}
-
-def p1Solutions = part1()
-
-def groupedSavings(def solutions, int baseLine) {
-    Map grouped = [:]
-    solutions.each { vec, time ->
-	int saved = baseLine - time
-	if(saved >= atLeast)
-	    grouped[saved] = grouped.get(saved, 0) + 1
-    }
-
-    return grouped
-}
-
-def grouped = groupedSavings(p1Solutions, baseLine)
-println grouped
-println grouped.values().sum()
-
-//Thoughts on part 2:
-/*
- It seems like enumerating the new paths will be a pain and take forever
- Not to mention that then trying to solve them will be even worse
- Pre-compute all paths with something like Floyd-Warshall?
- Terminate early?
- Prune areas that I don't need to bother will because there's no way to save enough time to matter?
- */
+//int diff = costs[vec(3,1)] - (costs[vec(13,6)] + 19)
+//println diff
