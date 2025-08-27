@@ -94,14 +94,9 @@ def findClumpy() {
 
 def part2() {
     def (index, found) = findClumpy()
-
     def list = []
     height.times { list.add new StringBuilder('.' * width) }
     found.each { v -> list[v[1]].setCharAt(v[0], '*' as char) }
-    
-    list.each { println it }
-    println()
-
     return index
 }
 

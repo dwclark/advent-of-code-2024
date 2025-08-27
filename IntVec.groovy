@@ -1,5 +1,6 @@
 import groovy.transform.CompileStatic
 
+@CompileStatic
 class IntVec {
     private final int[] ary
     
