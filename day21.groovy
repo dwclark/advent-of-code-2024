@@ -1,6 +1,5 @@
 import static Aoc.*
 import static IntVec.vec
-import groovy.transform.Field
 /*
  After first perusal, it looks like we need a series of bfs path finders.
  First, find the movements necessary for the actual keybad using bfs, keeping
@@ -16,8 +15,18 @@ import groovy.transform.Field
  it looks like each number is independent of other numbers. Assuming they are
  independent looks like it works somewhat, but not always
  */
-def numbers = new File("data/21a").readLines()
 
+int totalComplexity(Map<String,String> vals) {
+    vals.inject(0) { tot, code, motions -> tot += (code.replace('A','') as int) * motions.length() }
+}
+
+assert totalComplexity('029A': '<vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A',
+		       '980A': '<v<A>>^AAAvA^A<vA<AA>>^AvAA<^A>A<v<A>A>^AAAvA<^A>A<vA>^A<A>A',
+		       '179A': '<v<A>>^A<vA<A>>^AAvAA<^A>A<v<A>>^AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A',
+		       '456A': '<v<A>>^AA<vA<A>>^AAvAA<^A>A<vA>^A<A>A<vA>^A<A>A<v<A>A>^AAvA<^A>A',
+		       '379A': '<v<A>>^AvA^A<vA<AA>>^AAvA<^A>AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A') == 126384
+/*def numbers = new File("data/21a").readLines()
+ 
 abstract class Keypad {
     String press(IntVec pos)
     boolean valid(IntVec pos)
@@ -59,7 +68,7 @@ class Numeric extends Keypad {
     final Map<String,IntVec> PAD = [(vec(0,0)): '7', (vec(0,1)): '8', (vec(0,2)): '9',
 				    (vec(1,0)): '4', (vec(1,1)): '5', (vec(1,2)): '6',
 				    (vec(2,0)): '1', (vec(2,1)): '2', (vec(2,2)): '3',
-				    (vec(3,1)): '0', (vec(3,2)): 'A']
+				                     (vec(3,1)): '0', (vec(3,2)): 'A']
     
     String tryPress(IntVec pos) {
 	return PAD[pos]
@@ -180,3 +189,4 @@ void complexity(Map moves) {
 	println "${num[0..2].toInteger()}: ${seq.length()}"
     }
 }
+*/
