@@ -2,6 +2,7 @@ import static Aoc.*
 import static IntVec.vec
 import groovy.transform.CompileStatic
 import static Tuple.tuple
+import groovy.transform.Field
 
 int totalComplexity(Map<String,String> vals) {
     vals.inject(0) { tot, code, motions -> tot += (code.replace('A','') as int) * motions.length() }
@@ -149,34 +150,35 @@ class Direction {
 @CompileStatic
 class Mechanism {
     final List<Motion> moves
-    final Direction d1
-    final Direction d2
+    final List<Direction> directions
     final Numeric n
     
-    Mechanism(String keypad = 'A', List<Motion> moves = List.of()) {
-	this(new Direction(), new Direction(), new Numeric(keypad), moves)
+    Mechanism(int directionPads, String keypad = 'A', List<Motion> moves = List.of()) {
+	this((0..<directionPads).collect { new Direction() }, new Numeric(keypad), moves)
     }
-
-    Mechanism(Direction d1, Direction d2, Numeric n, List<Motion> moves) {
-	this.d1 = d1
-	this.d2 = d2
+    
+    Mechanism(List<Direction> directions, Numeric n, List<Motion> moves) {
+	this.directions = directions
 	this.n = n
 	this.moves = moves
     }
 
-    Tuple2<Mechanism,String> move(Motion m1, String goal) {
-	final Tuple2<Direction,Motion> r1 = d1.move(m1)
-	if(r1 == null) return null
-	else if(!r1.v2) return tuple(new Mechanism(r1.v1, d2, n, moves + m1), null)
+    Tuple2<Mechanism,String> move(Motion m, String goal) {
+	List<Direction> newDirections = new ArrayList(directions)
+	Motion currentMotion = m
+	for(int i = 0; i < newDirections.size(); ++i) {
+	    Direction d = newDirections[i]
+	    final Tuple2<Direction,Motion> r = d.move(currentMotion)
+	    if(r == null) return null
+	    newDirections[i] = r.v1
+	    if(r.v2) currentMotion = r.v2
+	    else return tuple(new Mechanism(newDirections, n, moves + m), null)
+	}
 
-	final Tuple2<Direction,Motion> r2 = d2.move(r1.v2)
-	if(r2 == null) return null
-	else if(!r2.v2) return tuple(new Mechanism(r1.v1, r2.v1, n, moves + m1), null)
-
-	final Tuple2<Numeric,String> r3 = n.move(r2.v2, goal)
-	if(r3 == null) return null
-	else if(!r3.v2) return tuple(new Mechanism(r1.v1, r2.v1, r3.v1, moves + m1), null)
-	else return tuple(new Mechanism(r1.v1, r2.v1, r3.v1, moves + m1), r3.v2)
+	final Tuple2<Numeric,String> r = n.move(currentMotion, goal)
+	if(r == null) return null
+	else if(!r.v2) return tuple(new Mechanism(newDirections, r.v1, moves + m), null)
+	else return tuple(new Mechanism(newDirections, r.v1, moves + m), r.v2)
     }
 
     Mechanism doMoves(String strMoves, String goal) {
@@ -204,10 +206,10 @@ class Mechanism {
     }
 }
 
-static Mechanism solve(String goal) {
+static Mechanism solve(int directionPads, String goal) {
     int index = 0
     LinkedList queue = new LinkedList()
-    queue.add(new Mechanism())
+    queue.add(new Mechanism(directionPads))
     while(queue) {
 	final Mechanism mechanism = queue.pop()
 	for(Motion m : Motion.all) {
@@ -246,7 +248,7 @@ static void test() {
 		   moves: '<v<A>>^AvA^A<vA<AA>>^AAvA<^A>AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A']]
 
     tests.each { test ->
-	Mechanism m = new Mechanism().doMoves(test.moves, test.goal)
+	Mechanism m = new Mechanism(2).doMoves(test.moves, test.goal)
 	assert m.n.soFar == test.goal
 	assert m.complexity == test.complexity
     }
@@ -263,10 +265,11 @@ static void test() {
     assert solutions.inject(0) { tot, solution -> tot += solution.complexity }
 }
 
-static int part1() {
-    List<Mechanism> solutions = []
-    new File('data/21').eachLine { goal -> solutions.add(solve(goal)) }
-    return solutions.inject(0) { tot, solution -> tot += solution.complexity }
+@Field final List<String> GOALS = new File('data/21').readLines()
+
+int totalComplexity(int directionPads) {
+    GOALS.collect { goal -> solve(directionPads, goal) }.inject(0) { tot, solution -> tot += solution.complexity }
 }
 
-println part1()
+printAssert("Part 1:", totalComplexity(2), 188384)
+
