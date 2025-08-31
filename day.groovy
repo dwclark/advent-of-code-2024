@@ -43,8 +43,6 @@ enum Mapping {
     boolean legal(IntVec vec) { lookup.containsKey(vec) }
 }
 
-@Field int LEVELS = 2
-
 @Immutable(knownImmutableClasses=[IntVec])
 @CompileStatic
 class State implements Comparable<State> {
@@ -89,11 +87,11 @@ List<String> activationPaths(final String from, final String to) {
 }
 
 @CompileStatic @Memoized
-long computeCost(String start, String goal, int level) {
+long computeCost(int levels, String start, String goal, int level) {
     List<String> paths = activationPaths(start, goal)
     List<Long> possible
     
-    if(level+1 == LEVELS) {
+    if(level+1 == levels) {
 	possible = paths.collect { String path -> (long) path.length() }
     }
     else {
@@ -101,7 +99,7 @@ long computeCost(String start, String goal, int level) {
 	for(String path : paths) {
 	    long pathTotal = 0L
 	    for(int i = 0; i < path.length(); ++i) {
-		pathTotal += computeCost(i==0 ? 'A' : path[i-1], path[i], level + 1)
+		pathTotal += computeCost(levels, i==0 ? 'A' : path[i-1], path[i], level + 1)
 	    }
 
 	    possible.add(pathTotal)
@@ -112,7 +110,7 @@ long computeCost(String start, String goal, int level) {
 }
 
 @CompileStatic @Memoized
-long solve(String code) {
+long solve(String code, int levels) {
     final IntVec PUSH = vec(0,0)
     final Queue<State> queue = new PriorityQueue<>()
     queue.add(State.create(code))
@@ -120,13 +118,12 @@ long solve(String code) {
     while(queue) {
 	final State current = queue.poll()
 	if(!current.goals) {
-	    println "${current.directions} cost: ${current.cost}"
 	    return current.cost * (code.replace('A','') as long)
 	}
 	
 	Mapping.MOTION.info.each { String str, IntVec motion ->
 	    if(current.at == current.goals[0] && motion == PUSH) {
-		queue.add(new State(cost: current.cost + computeCost(current.directions[-1], str, 0),
+		queue.add(new State(cost: current.cost + computeCost(levels, current.directions[-1], str, 0),
 				    at: current.at,
 				    directions: current.directions + str,
 				    goals: current.goals.tail()))
@@ -136,7 +133,7 @@ long solve(String code) {
 		final IntVec newAt = current.at + motion
 		if(Mapping.NUMERIC.legal(newAt) &&
 		   newAt.manhattan(current.goals[0]) < current.at.manhattan(current.goals[0])) {
-		    queue.add(new State(cost: current.cost + computeCost(current.directions[-1], str, 0),
+		    queue.add(new State(cost: current.cost + computeCost(levels, current.directions[-1], str, 0),
 					at: newAt,
 					directions: current.directions + str,
 					goals: current.goals))
@@ -154,5 +151,12 @@ println activationPaths('^', 'v')
 println activationPaths('<', '<')
 println activationPaths('v', 'A')*/
 
+assert solve('029A', 2) == 68 * 29
+assert solve('980A', 2) == 60 * 980
+assert solve('179A', 2) == 68 * 179
+assert solve('456A', 2) == 64 * 456
+assert solve('379A', 2) == 64 * 379
 
-println solve('029A')
+assert (solve('879A', 2) + solve('508A', 2) + solve('463A', 2) + solve('593A', 2) + solve('189A', 2)) == 188384L
+
+println (solve('879A', 25) + solve('508A', 25) + solve('463A', 25) + solve('593A', 25) + solve('189A', 25))
