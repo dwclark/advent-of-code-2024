@@ -1,18 +1,8 @@
+import groovy.transform.CompileStatic
+import groovy.transform.Field
 import static Aoc.*
 import static IntVec.vec
-import groovy.transform.CompileStatic
 import static Tuple.tuple
-import groovy.transform.Field
-
-int totalComplexity(Map<String,String> vals) {
-    vals.inject(0) { tot, code, motions -> tot += (code.replace('A','') as int) * motions.length() }
-}
-
-assert totalComplexity('029A': '<vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A',
-		       '980A': '<v<A>>^AAAvA^A<vA<AA>>^AvAA<^A>A<v<A>A>^AAAvA<^A>A<vA>^A<A>A',
-		       '179A': '<v<A>>^A<vA<A>>^AAvAA<^A>A<v<A>>^AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A',
-		       '456A': '<v<A>>^AA<vA<A>>^AAvAA<^A>A<vA>^A<A>A<vA>^A<A>A<v<A>A>^AAvA<^A>A',
-		       '379A': '<v<A>>^AvA^A<vA<AA>>^AAvA<^A>AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A') == 126384
 
 @CompileStatic
 enum Motion {
@@ -268,8 +258,11 @@ static void test() {
 @Field final List<String> GOALS = new File('data/21').readLines()
 
 int totalComplexity(int directionPads) {
-    GOALS.collect { goal -> solve(directionPads, goal) }.inject(0) { tot, solution -> tot += solution.complexity }
+    GOALS.collect { goal ->
+	Mechanism solved = solve(directionPads, goal)
+	println "${goal}: ${solved}"
+	return solved
+    }.inject(0) { tot, solution -> tot += solution.complexity }
 }
 
 printAssert("Part 1:", totalComplexity(2), 188384)
-
