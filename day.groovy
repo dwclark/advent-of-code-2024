@@ -15,6 +15,10 @@ import static Tuple.tuple
 
  The cost of a move will be the number of presses at the top layer. So the complexity
  of a given set of motions will be total cost * code.
+
+ May also have to do some DFS path enumeration to cache paths instead of always
+ figuring them out at each stage...or maybe not, just solve cheapest each time.
+ Caching should smooth over slow runtimes.
  */
 
 @CompileStatic
