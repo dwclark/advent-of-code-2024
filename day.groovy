@@ -5,6 +5,18 @@ import groovy.transform.Immutable
 import static IntVec.vec
 import static Tuple.tuple
 
+/*
+ OK, I looked at the advent of code reddit, but I think the advice that I read there
+ was pretty bad. The key to this will likely be using Dijkstra's on the numeric
+ keypad, but the cost function is going to be based on all of the directional keypads
+ stacked above the number keypad. In part 1, this means recursion through 3 keypads
+ while in part 2, recursion through 26 keypads. However, since all keypads above the first
+ will always start at the 'A', meaning a lot of what happens can be cached.
+
+ The cost of a move will be the number of presses at the top layer. So the complexity
+ of a given set of motions will be total cost * code.
+ */
+
 @CompileStatic
 enum Mapping {
     NUMERIC('7': vec(0,0), '8': vec(0,1), '9': vec(0,2),
@@ -25,14 +37,9 @@ enum Mapping {
     final Map<IntVec,String> lookup
 }
 
-//based on what previous robot has to spend to actually arrive at it starting from A
-//I managed to fill in numbers that get the correct result for the examples, but not for my data. :(
 @Field Map<String,Integer> COSTS = [ '^': 4, 'A': 1, '<': 6, 'v': 5, '>': 3 ]
 @Field IntVec NO_MOTION = vec(0,0)
 
-//cost model is most important
-//stay on square (emit same key cost: 0, move cost: manhattan distance to move)
-//but move must still be legal!
 @Immutable(knownImmutableClasses=[IntVec])
 @CompileStatic
 class State implements Comparable<State> {
