@@ -30,7 +30,7 @@ enum Mapping {
 	DIRECTION('^': vec(0,1), 'A': vec(0,2),
 		  '<': vec(1,0), 'v': vec(1,1), '>': vec(1,2)),
 	MOTION('^': vec(-1,0), 'v': vec(1,0),
-	       '<': vec(0,-1), '>': vec(0,1))
+	       '<': vec(0,-1), '>': vec(0,1), 'A': vec(0,0))
     
     Mapping(Map<String,IntVec> info) {
 	this.info = info.asImmutable()
@@ -39,114 +39,120 @@ enum Mapping {
 
     final Map<String,IntVec> info
     final Map<IntVec,String> lookup
+
+    boolean legal(IntVec vec) { lookup.containsKey(vec) }
 }
 
-@Field Map<String,Integer> COSTS = [ '^': 4, 'A': 1, '<': 6, 'v': 5, '>': 3 ]
-@Field IntVec NO_MOTION = vec(0,0)
+@Field int LEVELS = 2
 
 @Immutable(knownImmutableClasses=[IntVec])
 @CompileStatic
 class State implements Comparable<State> {
-    int cost
+    long cost 
     IntVec at
-    List<IntVec> motions
+    String directions
+    List<IntVec> goals
+    
     int compareTo(State rhs) { return cost <=> rhs.cost }
+
+    static State create(String code) {
+	return new State(cost: 0L, at: Mapping.NUMERIC.info['A'],
+			 directions: 'A',
+			 goals: code.collect { s -> Mapping.NUMERIC.info[s] })
+    }
+}
+
+@Memoized @CompileStatic
+List<String> activationPaths(final String from, final String to) {
+    final IntVec goal = Mapping.DIRECTION.info[to]
+    final LinkedList<Tuple2<IntVec,String>> stack = new LinkedList<>([tuple(Mapping.DIRECTION.info[from], '')])
+    final Set<String> discovered = new HashSet<>()
+    final List<String> ret = []
+    
+    while(stack) {
+	Tuple2<IntVec,String> step = stack.pop()
+	if(step.v1 == goal) {
+	    ret.add(step.v2 + 'A')
+	}
+	else {
+	    Mapping.MOTION.info.each { String s, IntVec move ->
+		final IntVec newAt = step.v1 + move
+		if(Mapping.DIRECTION.legal(newAt) &&
+		   newAt.manhattan(goal) < step.v1.manhattan(goal)) {
+		    stack.push(tuple(newAt, step.v2 + s))
+		}
+	    }
+	}
+    }
+
+    return ret
 }
 
 @CompileStatic @Memoized
-String solve(String strStart, String strEnd, Mapping mapping) {
+long computeCost(String start, String goal, int level) {
+    List<String> paths = activationPaths(start, goal)
+    List<Long> possible
+    
+    if(level+1 == LEVELS) {
+	possible = paths.collect { String path -> (long) path.length() }
+    }
+    else {
+	possible = []
+	for(String path : paths) {
+	    long pathTotal = 0L
+	    for(int i = 0; i < path.length(); ++i) {
+		pathTotal += computeCost(i==0 ? 'A' : path[i-1], path[i], level + 1)
+	    }
+
+	    possible.add(pathTotal)
+	}
+    }
+
+    return possible.min()
+}
+
+@CompileStatic @Memoized
+long solve(String code) {
     final IntVec PUSH = vec(0,0)
-    final IntVec GOAL = mapping.info[strEnd]
-    Queue<State> queue = new PriorityQueue<>()
-    queue.add(new State(cost: 0, at: mapping.info[strStart], motions: List.of()))
+    final Queue<State> queue = new PriorityQueue<>()
+    queue.add(State.create(code))
     
     while(queue) {
 	final State current = queue.poll()
-	if(current.at == GOAL) {
-	    return current.motions.collect { v -> Mapping.MOTION.lookup[v] }.join('') + 'A'
+	if(!current.goals) {
+	    println "${current.directions} cost: ${current.cost}"
+	    return current.cost * (code.replace('A','') as long)
 	}
 	
 	Mapping.MOTION.info.each { String str, IntVec motion ->
-	    final IntVec previousMotion = current.motions ? current.motions[-1] : NO_MOTION
-	    final IntVec newAt = current.at + motion
-	    final int cost = (motion == previousMotion) ? 0 : COSTS[str]
-	    if(mapping.lookup[newAt] && newAt.manhattan(GOAL) < current.at.manhattan(GOAL)) {
-		queue.add(new State(cost: current.cost + cost, at: newAt, motions: current.motions + motion))
+	    if(current.at == current.goals[0] && motion == PUSH) {
+		queue.add(new State(cost: current.cost + computeCost(current.directions[-1], str, 0),
+				    at: current.at,
+				    directions: current.directions + str,
+				    goals: current.goals.tail()))
+	    }
+
+	    if(current.at != current.goals[0] && motion != PUSH) {
+		final IntVec newAt = current.at + motion
+		if(Mapping.NUMERIC.legal(newAt) &&
+		   newAt.manhattan(current.goals[0]) < current.at.manhattan(current.goals[0])) {
+		    queue.add(new State(cost: current.cost + computeCost(current.directions[-1], str, 0),
+					at: newAt,
+					directions: current.directions + str,
+					goals: current.goals))
+		}
 	    }
 	}
     }
 }
 
-StringBuilder solveString(StringBuilder str, int levels, int level) {
-    final Mapping mapping = (levels == level) ? Mapping.NUMERIC : Mapping.DIRECTION
-    
-    final StringBuilder sb = new StringBuilder()
-    for(int i = 0; i < str.length(); ++i) {
-	String first = (i == 0) ? 'A' : str[i-1]
-	String second = str[i]
-	sb.append(solve(first, second, mapping))
-    }
+/*println activationPaths('A', '>')
+println activationPaths('A', 'v')
+println activationPaths('<', 'A')
+println activationPaths('v', '^')
+println activationPaths('^', 'v')
+println activationPaths('<', '<')
+println activationPaths('v', 'A')*/
 
-    if(level == 0)
-	return sb
-    else
-	return solveString(sb, levels, level - 1)
-}
 
-assert solveString(new StringBuilder('029A'), 2, 2).length() == 68
-assert solveString(new StringBuilder('980A'), 2, 2).length() == 60
-assert solveString(new StringBuilder('179A'), 2, 2).length() == 68
-assert solveString(new StringBuilder('456A'), 2, 2).length() == 64
-assert solveString(new StringBuilder('379A'), 2, 2).length() == 64
-
-//println solveString(new StringBuilder('0'), 20, 20).length()
-
-@Field int levels
-
-@Memoized
-String solveLevel(String s1, String s2, int level) {
-    final Mapping mapping = (level == levels) ? Mapping.NUMERIC : Mapping.DIRECTION
-    
-    if(level > 0) {
-	String accum = ''
-	final String solution = solve(s1, s2, mapping)
-	for(int j = 0; j < solution.length(); ++j) {
-	    accum += solveLevel(solution[j-1], solution[j], level-1)
-	}
-
-	return accum
-    }
-    else {
-	return solve(s1, s2, mapping)
-    }
-}
-
-String solveLevels(String code, int totalLevels) {
-    levels = totalLevels
-    long total = 0L
-    String str = 'A' + code
-    String accum = ''
-    for(int i = 1; i < str.length(); ++i) {
-	accum += solveLevel(str[i-1], str[i], levels)
-    }
-    
-    return accum
-}
-
-/*assert solveLevels('029A', 2) == 68L
-assert solveLevels('980A', 2) == 60L
-assert solveLevels('179A', 2) == 68L
-assert solveLevels('456A', 2) == 64L
-assert solveLevels('379A', 2) == 64L
- */
-
-@Field final List<String> GOALS = /*['029A', '980A', '179A', '456A', '379A']*/ new File('data/21').readLines()
-
-void solveGoals(int levels) {
-    GOALS.each { code ->
-	println "${code}: ${solveString(new StringBuilder(code), 2, 2)}"
-	//tot += (solveLevels(code, levels) * (code.replace('A', '') as long))
-    }
-}
-
-solveGoals(2)
+println solve('029A')
