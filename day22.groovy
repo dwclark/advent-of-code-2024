@@ -24,20 +24,20 @@ List<Long> secrets(final long start, int rounds = 1) {
 }
 
 @CompileStatic
-List<List<Map.Entry<List,Long>>> priceChanges(List<List<Long>> all) {
-    List<List<Map.Entry<List,Long>>> ret = []
+List<Map<List,Long>> priceChanges(List<List<Long>> all) {
+    List<Map<List,Long>> ret = []
     all.each { List<Long> listSecrets ->
+	Map<List,Long> changes = [:]
 	List<Long> prices = listSecrets.collect { n -> n % 10 }
-	List<Map.Entry<List,Long>> changes = []
 	for(int i = 4; i < prices.size(); ++i) {
 	    List<Long> diffs = []
 	    for(int j = i-3; j <=i; ++j) {
 		diffs.add(prices[j] - prices[j-1])
 	    }
 
-	    long diff = prices[i]
-	    Map.Entry<List,Long> toAdd = Map.entry(diffs, prices[i])
-	    changes.add(toAdd)
+	    Long diff = prices[i]
+	    if(!changes.containsKey(diffs))
+		changes[diffs] = diff
 	}
 
 	ret.add(changes)
@@ -47,41 +47,17 @@ List<List<Map.Entry<List,Long>>> priceChanges(List<List<Long>> all) {
 }
 
 @CompileStatic
-Long bananas(List<List<Map.Entry<List,Long>>> allChanges) {
-    Set<List> keys = new HashSet<>()
-    allChanges.each { List<Map.Entry<List,Long>> changes ->
-	changes.each { Map.Entry<List,Long> change ->
-	    keys.add(change.key)
-	}
-    }
+Long bananas(List<Map<List,Long>> allChanges) {
+    Map<List,Long> sums = [:]
+    allChanges.each { Map<List,Long> changes ->
+	changes.each { List key, Long change -> sums[key] = sums.get(key, 0L) + change } }
 
-    List<CompletableFuture<Long>> futures = keys.collect { List key ->
-	CompletableFuture.supplyAsync {
-	    long total = 0L
-	    
-	    allChanges.each { List<Map.Entry<List,Long>> changes ->
-		for(Map.Entry<List,Long> change : changes) {
-		    List diffs = change.key
-		    Long price = change.value
-		    if(diffs == key) {
-			total += price
-			break
-		    }
-		}
-	    }
-	    
-	    return total
-	}
-    }
-
-    futures.collect { f -> f.get() }.max()
+    sums.values().max()
 }
 
 @Field final List<Long> initialSecrets = new File('data/22').readLines().collect { it as Long }
 
 List<List<Long>> allSecrets = initialSecrets.inject([]) { list, num -> list << secrets(num, 2000) }
-List<List<Map.Entry<List,Long>>> changes = priceChanges(allSecrets)
+List<Map<List,Long>> changes = priceChanges(allSecrets)
 printAssert("Part 1:", allSecrets.sum { list -> list[-1] }, 17577894908L,
 	    "Part 2:", bananas(changes), 1931L)
-
-
