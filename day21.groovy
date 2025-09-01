@@ -4,22 +4,7 @@ import groovy.transform.Memoized
 import groovy.transform.Immutable
 import static IntVec.vec
 import static Tuple.tuple
-
-/*
- OK, I looked at the advent of code reddit, but I think the advice that I read there
- was pretty bad. The key to this will likely be using Dijkstra's on the numeric
- keypad, but the cost function is going to be based on all of the directional keypads
- stacked above the number keypad. In part 1, this means recursion through 3 keypads
- while in part 2, recursion through 26 keypads. However, since all keypads above the first
- will always start at the 'A', meaning a lot of what happens can be cached.
-
- The cost of a move will be the number of presses at the top layer. So the complexity
- of a given set of motions will be total cost * code.
-
- May also have to do some DFS path enumeration to cache paths instead of always
- figuring them out at each stage...or maybe not, just solve cheapest each time.
- Caching should smooth over slow runtimes.
- */
+import static Aoc.*
 
 @CompileStatic
 enum Mapping {
@@ -64,7 +49,6 @@ class State implements Comparable<State> {
 List<String> activationPaths(final String from, final String to) {
     final IntVec goal = Mapping.DIRECTION.info[to]
     final LinkedList<Tuple2<IntVec,String>> stack = new LinkedList<>([tuple(Mapping.DIRECTION.info[from], '')])
-    final Set<String> discovered = new HashSet<>()
     final List<String> ret = []
     
     while(stack) {
@@ -88,25 +72,18 @@ List<String> activationPaths(final String from, final String to) {
 
 @CompileStatic @Memoized
 long computeCost(int levels, String start, String goal, int level) {
-    List<String> paths = activationPaths(start, goal)
-    List<Long> possible
+    final List<String> paths = activationPaths(start, goal)
     
-    if(level+1 == levels) {
-	possible = paths.collect { String path -> (long) path.length() }
+    if(level == levels) {
+	return paths.collect { String path -> (long) path.length() }.min()
     }
     else {
-	possible = []
-	for(String path : paths) {
-	    long pathTotal = 0L
-	    for(int i = 0; i < path.length(); ++i) {
-		pathTotal += computeCost(levels, i==0 ? 'A' : path[i-1], path[i], level + 1)
+	return paths.collect { path ->
+	    (long) (0..<path.length()).sum { i ->
+		computeCost(levels, i==0 ? 'A' : path[i-1], path[i], level + 1)
 	    }
-
-	    possible.add(pathTotal)
-	}
+	}.min()
     }
-
-    return possible.min()
 }
 
 @CompileStatic @Memoized
@@ -123,7 +100,7 @@ long solve(String code, int levels) {
 	
 	Mapping.MOTION.info.each { String str, IntVec motion ->
 	    if(current.at == current.goals[0] && motion == PUSH) {
-		queue.add(new State(cost: current.cost + computeCost(levels, current.directions[-1], str, 0),
+		queue.add(new State(cost: current.cost + computeCost(levels, current.directions[-1], str, 1),
 				    at: current.at,
 				    directions: current.directions + str,
 				    goals: current.goals.tail()))
@@ -133,7 +110,7 @@ long solve(String code, int levels) {
 		final IntVec newAt = current.at + motion
 		if(Mapping.NUMERIC.legal(newAt) &&
 		   newAt.manhattan(current.goals[0]) < current.at.manhattan(current.goals[0])) {
-		    queue.add(new State(cost: current.cost + computeCost(levels, current.directions[-1], str, 0),
+		    queue.add(new State(cost: current.cost + computeCost(levels, current.directions[-1], str, 1),
 					at: newAt,
 					directions: current.directions + str,
 					goals: current.goals))
@@ -143,20 +120,7 @@ long solve(String code, int levels) {
     }
 }
 
-/*println activationPaths('A', '>')
-println activationPaths('A', 'v')
-println activationPaths('<', 'A')
-println activationPaths('v', '^')
-println activationPaths('^', 'v')
-println activationPaths('<', '<')
-println activationPaths('v', 'A')*/
+@Field final List<String> CODES = new File('data/21').readLines()
 
-assert solve('029A', 2) == 68 * 29
-assert solve('980A', 2) == 60 * 980
-assert solve('179A', 2) == 68 * 179
-assert solve('456A', 2) == 64 * 456
-assert solve('379A', 2) == 64 * 379
-
-assert (solve('879A', 2) + solve('508A', 2) + solve('463A', 2) + solve('593A', 2) + solve('189A', 2)) == 188384L
-
-println (solve('879A', 25) + solve('508A', 25) + solve('463A', 25) + solve('593A', 25) + solve('189A', 25))
+printAssert("Part 1:", CODES.sum { code -> solve(code, 2) }, 188384L,
+	    "Part 2:", CODES.sum { code -> solve(code, 25) }, 232389969568832L)
