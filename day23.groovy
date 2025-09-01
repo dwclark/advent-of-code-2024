@@ -57,4 +57,3 @@ Set<String> largest() {
 
 printAssert("Part 1:", containsT(threeConnections()), 1370,
 	    "Part 2:", largest().join(','), 'am,au,be,cm,fo,ha,hh,im,nt,os,qz,rr,so')
-

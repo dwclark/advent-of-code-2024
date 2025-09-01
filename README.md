@@ -28,3 +28,15 @@ However, threading is almost never the right solution in AofC. If you are reachi
 * Extract the max total banana price
 
 Basically this means I eliminated a single loop, but since it was the most expensive loop, it made a huge difference.
+
+## [Day 23](day23.groovy) Compute Only What You Need!
+
+Part 1 was straightforward.
+
+Part 2 was a little tricky, the thought process to arrive at a solution was this:
+
+* CONNECTIONS maps a computer to all its connections
+* The largest total connections can only be a subset of a given computer's connections
+* Therefore the key is to form all possible subsets of a given computer's connectsions and search through each subset, testing to see if the computers in that subset are all connected
+* To test that a list of computers are all connected is a matter of systematically looping through every possible pair of connections in that list and using CONNECTIONS to see if the pairs are connected
+* Now just loop throught all the CONNECTIONS and find the biggest set of totally connected computers
