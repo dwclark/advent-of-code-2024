@@ -68,55 +68,6 @@ class Gate {
     gates
 }
 
-long value() {
-    long ret = 0L
-    long idx = 0L
-
-    def key = { -> String.format("z%02d", idx) }
-    while(WIRES.containsKey(key())) {
-	Byte b = WIRES[key()]
-	ret |= (((long) b) << idx)
-	++idx
-    }
-
-    return ret
-}
-
-/*while(GATES.any { gate -> !gate.computed }) {
-    GATES.each { gate ->
-	if(!gate.computed && gate.computable)
-	    gate.compute()
-    }
-}
-
-printAssert("Part 1:", value(), 36035961805936L)*/
-
-//part 2, looks like this is supposed to represent a series of half adders
-//diagram or somehow figure out how the half adders are misconfigured
-
-//OK, looks like x,y all on inputs, z all on outputs, as is to be expected for a half adder
-//println GATES.findAll { g -> g.out.startsWith('x') || g.out.startsWith('x') }
-//println GATES.findAll { g -> g.out.startsWith('y') || g.out.startsWith('y') }
-//println GATES.findAll { g -> g.in1.startsWith('z') || g.in2.startsWith('z') }
-
-//GATES.findAll { g -> g.out.startsWith('z') }.sort { g1, g2 -> g1.out <=> g2.out }.each { println it }
-//jgw OR rhh -> z37 is probably incorrect, all other z terminals are XOR, except for z45, which is the final carry op
-
-//yeah, this needs to be beefed up to display the two half-adders for each output/carry
-/*def complexes = new TreeMap()
-GATES.findAll { g -> g.out.startsWith('z') }.each { g ->
-    inputs = []
-    complexes[g.out] = [g]
-    def upstream = [g.in1, g.in2]
-    def upstreamGates = GATES.findAll { upGate -> upGate.out in upstream || upGate.out in upstream }
-    complexes[g.out].addAll(upstreamGates)
-    def moreUpstream = upstreamGates.collect { up -> [up.in1, up.in2] }.flatten()
-    def moreUpstreamGates = GATES.findAll { upGate -> upGate.out in moreUpstream || upGate.out in moreUpstream }
-    complexes[g.out].addAll(moreUpstreamGates)
-}*/
-
-//complexes.each { k, v -> println "${k}: ${v}" }
-
 class GateSwap extends RuntimeException {
     GateSwap(String one, String two) {
 	this.one = one
@@ -134,7 +85,6 @@ interface Adder {
     default String xwire(int idx) { String.format("x%02d", idx) }
     default String ywire(int idx) { String.format("y%02d", idx) }
     default String zwire(int idx) { String.format("z%02d", idx) }
-    
 }
 
 @ToString(includeNames=true)
@@ -191,89 +141,57 @@ class Half implements Adder {
     final String getSumWire() { sumGate.out }
 }
 
-class Carry {
+long part1() {
+    while(GATES.any { gate -> !gate.computed }) {
+	GATES.each { gate ->
+	    if(!gate.computed && gate.computable)
+		gate.compute()
+	}
+    }
+
+    long ret = 0L
+    long idx = 0L
+
+    def key = { -> String.format("z%02d", idx) }
+    while(WIRES.containsKey(key())) {
+	Byte b = WIRES[key()]
+	ret |= (((long) b) << idx)
+	++idx
+    }
+
+    return ret
 }
 
-def adders
-boolean didIt = false
-def swaps = []
-while(!didIt) {
-    try {
-	adders = []
-	(0..44).each { idx ->
-	    if(idx == 0)
-		adders[idx] = new Half(idx, GATES)
-	    else if(idx < 45)
-		adders[idx] = new Full(idx, GATES, adders)
+String part2() {
+    def adders
+    boolean didIt = false
+    def swaps = []
+    while(!didIt) {
+	try {
+	    adders = []
+	    (0..44).each { idx ->
+		if(idx == 0)
+		    adders[idx] = new Half(idx, GATES)
+		else if(idx < 45)
+		    adders[idx] = new Full(idx, GATES, adders)
+	    }
+	    
+	    didIt = true
 	}
-	
-	didIt = true
-	println "did it!"
-    }
-    catch(GateSwap gs) {
-	println "swapping ${gs.one} and ${gs.two}"
-	swaps.add gs.one
-	swaps.add gs.two
-	GATES.each { gate ->
-	    ['in1', 'in2', 'out'].each { field ->
-		if(gate[field] == gs.one) gate[field] = gs.two
-		if(gate[field] == gs.two) gate[field] = gs.one
+	catch(GateSwap gs) {
+	    swaps.add gs.one
+	    swaps.add gs.two
+	    GATES.each { gate ->
+		['in1', 'in2', 'out'].each { field ->
+		    if(gate[field] == gs.one) gate[field] = gs.two
+		    if(gate[field] == gs.two) gate[field] = gs.one
+		}
 	    }
 	}
     }
+
+    swaps.sort().join(',')
 }
 
-adders.each { println it }
-println swaps.sort().join(',')
-
-void fullAdders() {
-    (0..45).each { idx ->
-	def zwire = String.format("z%02d", idx)
-	def xwire = String.format("x%02d", idx)
-	def ywire = String.format("y%02d", idx)
-
-	println("Finding info for ${zwire}")
-	def xyXORGate = GATES.find { g -> g.in1 == xwire && g.op == 'XOR' && g.in2 == ywire }
-	if(xyXORGate)
-	    println "Found xy xor gate: ${xyXORGate}"
-	else
-	    println "ERROR: no xy xor gate"
-
-	def carryInWire = null
-	def sumXORGate = GATES.find { g -> (g.in1 == xyXORGate?.out || g.in2 == xyXORGate?.out) && g.op == 'XOR' && g.out == zwire }
-	if(sumXORGate) {
-	    carryInWire = (sumXORGate.in1 == xyXORGate.out) ? sumXORGate.in2 : sumXORGate.in1
-	    println "Found sum xor gate ${sumXORGate}, carry in wire: ${carryInWire}"
-	}
-	else {
-	    println "ERROR: no sum xor gate"
-	    println "Similar gates: ${GATES.findAll { g -> g.out == zwire }}"
-	}
-	
-	
-	def xyANDGate = GATES.find { g -> g.in1 == xwire && g.op == 'AND' && g.in2 == ywire }
-	if(xyANDGate)
-	    println "Found xy and gate: ${xyANDGate}"
-	else
-	    println "ERROR: no xy and gate"
-
-	def carryInWires = [ xyXORGate?.out, carryInWire ]
-	def carryANDGate = GATES.find { g -> g.in1 in carryInWires && g.in2 in carryInWires && g.op == 'AND' }
-	if(carryANDGate)
-	    println "Found carry and gate: ${carryANDGate}"
-	else
-	    println "ERROR: no carry and gate"
-
-	def carryOutWires = [carryANDGate?.out, xyANDGate?.out]
-	def carryORGate = GATES.find { g -> g.in1 in carryOutWires && g.in2 in carryOutWires && g.op == 'OR' }
-	if(carryORGate)
-	    println "Found carry or gate ${carryORGate}"
-	else
-	    println "ERROR: no carry or gate"
-
-	println()
-    }
-}
-
-//fullAdders()
-
+printAssert("Part 1:", part1(), 36035961805936L,
+	    "Part 2:", part2(), 'jqf,mdd,skh,wpd,wts,z11,z19,z37')
