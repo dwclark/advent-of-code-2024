@@ -62,3 +62,9 @@ Here's my thought process on how I solved part 2:
 * Do some more data exploration to get an idea of what values should be replaced. I re-read the instructions to discover that only the **wires** can be swapped. This means that when searching for a replacement, the operation will be the same. This simplifies doing a fuzzy search for possible gates to replace wires.
 * Implement a mechanism to stop when there are errors building an adder, do the fuzzy search for replacements, throw an exception with the proposed swaps, catch the exception, do the swaps on the gates, and retry building the adders. I did this for the `carryOr` gate in the full adder. Then for the `carryAnd`. I was prepared to have to do this for all of the gate types, but those were the only two gate types with errors.
 * Gather all of the swaps, sort them, submit the answer.
+
+## [Day 25](day24.groovy) I Coulnt' Be Bothered To Do It The Right Way
+
+Part 1 was easy. However, I didn't want to bother with counting and ignoring top and bottom rows. Just see if locks and keys share any poition where the # characters overlap. If they do, they don't match. Otherwise, they do.
+
+Part 2, there is no part 2!
