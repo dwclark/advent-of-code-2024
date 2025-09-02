@@ -2,6 +2,12 @@
 
 ## Overview
 
+To run the AOC code you need to have a version of groovy installed. The code was run against 4.x groovy, but likely 3.x will also work.
+
+To run day for day XX, execute `groovy dayXX.groovy`.
+
+To run all scripts, execute `groovy Aoc.groovy`.
+
 ## [Day 21](day21.groovy) Objects and State, Then Some Math and "Science"
 
 I think today is a good example of how discovery and insight are achieved in software.
